@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="en" class="min-h-screen bg-[#030712]">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>harsh labs: The Ultimate 3D & Physics Playground</title>
+    <!-- Tailwind CSS (Play CDN for fully responsive modern UI components) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome for futuristic, high-quality icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts: Space Grotesk (headings) and JetBrains Mono (monospaced readouts) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;700&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
+    <!-- Three.js (WebGL Core) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <!-- OrbitControls for Three.js -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+
+    <!-- Global JS Error Capturing & Reporting Banner -->
+    <script>
+        window.onerror = function(msg, url, line, col, error) {
+            // Log to console (so it prints in Logcat too)
+            console.error("JS Error: " + msg + " at " + url + ":" + line + (col ? ":" + col : ""));
+            
+            // Build visual warning banner on screen
+            const errDiv = document.createElement('div');
+            errDiv.style.position = 'fixed';
+            errDiv.style.top = '0';
+            errDiv.style.left = '0';
+            errDiv.style.width = '100%';
+            errDiv.style.background = '#dc2626'; // Red-600
+            errDiv.style.color = '#ffffff';
+            errDiv.style.padding = '12px';
+            errDiv.style.zIndex = '99999';
+            errDiv.style.fontFamily = 'monospace';
+            errDiv.style.fontSize = '12px';
+            errDiv.style.lineHeight = '1.4';
+            errDiv.style.boxShadow = '0 10px 15px -3px rgba(0,0,0,0.5)';
+            errDiv.style.maxHeight = '50%';
+            errDiv.style.overflowY = 'auto';
+            errDiv.style.whiteSpace = 'pre-wrap';
+            
+            errDiv.innerText = "⚠️ SYSTEM ERROR CAPTURED:\n" + msg + 
+                               "\n\nFile: " + url + 
+                               "\nLine: " + line + (col ? " (Col " + col + ")" : "") + 
+                               (error && error.stack ? "\n\nStack:\n" + error.stack : "");
+                               
+            document.body.appendChild(errDiv);
+            return false;
+        };
+    </script>
+
+    <script>
+        // Guard configuration block to prevent crash if CDN is blocked/failing
+        if (typeof tailwind !== 'undefined') {
+            tailwind.config = {
+                theme: {
+                    extend: {
+                        fontFamily: {
+                            sans: ['Space Grotesk', 'sans-serif'],
+                            mono: ['JetBrains Mono', 'monospace'],
+                        },
+                        colors: {
+                            neon: {
+                                blue: '#00f0ff',
+                                purple: '#bd00ff',
+                                pink: '#ff007f',
+                                green: '#00ff66',
+                                gold: '#ffd700',
+                                crimson: '#ff3b30'
+                            }
+                        },
+                        boxShadow: {
+                            'neon-blue': '0 0 15px rgba(0, 240, 255, 0.5)',
+                            'neon-purple': '0 0 15px rgba(189, 0, 255, 0.5)',
+                            'neon-pink': '0 0 15px rgba(255, 0, 127, 0.5)',
+                            'neon-green': '0 0 15px rgba(0, 255, 102, 0.5)',
+                        }
+                    }
+                }
+            };
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Space Grotesk', sans-serif;
+            background-color: #030712;
+            color: #f3f4f6;
+            overflow-x: hidden;
+            overflow-y: auto; /* Natural document scrolling model */
+            margin: 0;
+            padding: 0;
+            min-height: 100%;
+        }
+        /* Custom neon scrollbars */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #030712;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #1f2937;
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #00f0ff;
+        }
+        /* Glow animations */
+        @keyframes pulse-slow {
+            0%, 100% { opacity: 0.3; transform: scale(1); }
+            50% { opacity: 0.6; transform: scale(1.05); }
+        }
+        .bg-glow {
+            animation: pulse-slow 8s infinite ease-in-out;
+        }
+        /* Glassmorphism panel */
+        .glass-panel {
+            background: rgba(17, 24, 39, 0.7);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        /* Fade-in slide animations for Phase 2 staggered lists */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(16px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        .animate-fade-in-up {
+            animation: fadeInUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+        }
+    </style>
+</head>
+<body class="min-h-screen select-none bg-[#030712] text-[#f3f4f6]">
+
+    <!-- Ambient Particle Canvas for Phase 2 Premium Feel -->
+    <canvas id="ambient-particles" class="fixed inset-0 pointer-events-none z-0 opacity-40"></canvas>
+ 
+    <!-- Ambient Grid Background -->
+    <div class="fixed inset-0 bg-[linear-gradient(to_right,#111827_1px,transparent_1px),linear-gradient(to_bottom,#111827_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)] pointer-events-none z-0"></div>
+    
+    <!-- Neon Radial Glows -->
+    <div class="fixed top-[-10%] left-[-10%] w-[50%] h-[50%] rounded-full bg-neon-blue/10 blur-[120px] pointer-events-none bg-glow z-0"></div>
+    <div class="fixed bottom-[-10%] right-[-10%] w-[50%] h-[50%] rounded-full bg-neon-purple/10 blur-[120px] pointer-events-none bg-glow z-0" style="animation-delay: -4s;"></div>
+ 
+    <!-- Main Dashboard Container -->
+    <div id="dashboard" class="relative z-10 max-w-7xl mx-auto px-4 py-8 flex flex-col min-h-screen">
+        
+        <!-- Header -->
+        <header class="mb-10 text-center flex flex-col items-center">
+            <div class="inline-flex items-center gap-2 px-3 py-1 bg-neon-blue/10 border border-neon-blue/30 rounded-full text-neon-blue text-xs font-mono tracking-widest uppercase mb-4 shadow-neon-blue/20 shadow-md">
+                <i class="fa-solid fa-atom animate-spin" style="animation-duration: 4s;"></i> Sandbox Active
+            </div>
+            <h1 class="text-4xl md:text-6xl font-black tracking-tight bg-gradient-to-r from-white via-neon-blue to-neon-purple bg-clip-text text-transparent drop-shadow-[0_0_30px_rgba(0,240,255,0.2)]">
+                harsh <span class="text-neon-blue font-light">labs</span><span class="text-xs align-super text-neon-purple font-mono ml-1">v2.5</span>
+            </h1>
+            <p class="mt-2 text-sm md:text-base text-gray-400 font-mono tracking-wider max-w-xl">
+                The Ultimate 3D & Physics Playground
+            </p>
+            <div class="mt-4 flex flex-wrap gap-3 justify-center items-center text-xs font-mono text-gray-500">
+                <span class="flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-neon-green animate-pulse"></span> SYSTEM: EXTREME LEVEL PHASE 2</span>
+                <span class="text-white/10">•</span>
+                <span class="flex items-center gap-1 text-neon-blue/80"><i class="fa-solid fa-bolt"></i> GPU ACCELERATION ON</span>
+                <span class="text-white/10">•</span>
+                <span class="flex items-center gap-1 text-neon-purple/80"><i class="fa-solid fa-layer-group"></i> 21 PRESET MODULES</span>
+            </div>
+            <div class="w-24 h-[2px] bg-gradient-to-r from-transparent via-neon-blue to-transparent mt-4"></div>
+        </header>
+ 
+        <!-- Ambient Soundscape Controller Card -->
+        <div class="mb-8 max-w-xl mx-auto w-full glass-panel p-4 rounded-xl border border-neon-purple/20 shadow-lg shadow-neon-purple/5 flex flex-col sm:flex-row justify-between items-center gap-4 relative overflow-hidden group">
+            <div class="absolute inset-0 bg-gradient-to-r from-neon-purple/5 to-transparent pointer-events-none"></div>
+            <div class="flex items-center gap-3 relative z-10">
+                <div class="w-10 h-10 rounded-lg bg-neon-purple/10 border border-neon-purple/20 flex items-center justify-center text-neon-purple animate-pulse">
+                    <i class="fa-solid fa-radio text-sm"></i>
+                </div>
+                <div>
+                    <h4 class="text-xs font-mono font-bold text-white tracking-wider uppercase">Laboratory Ambient Hum</h4>
+                    <p class="text-[10px] font-mono text-gray-500">Procedural space drones via Web Audio API</p>
+                </div>
+            </div>
+            <button id="synth-ambient-toggle" class="relative z-10 w-full sm:w-auto px-4 py-2 bg-neon-purple/20 hover:bg-neon-purple/30 border border-neon-purple/30 hover:border-neon-purple text-neon-purple text-[10px] font-mono tracking-widest uppercase rounded-lg shadow-md transition-all flex items-center justify-center gap-2">
+                <i id="synth-ambient-icon" class="fa-solid fa-play"></i> GENERATE SPACE HUM
+            </button>
+        </div>
+ 
+        <!-- Search & Filter Controls -->
+        <div class="mb-8 flex flex-col sm:flex-row gap-4 justify-between items-center bg-gray-950/40 p-4 rounded-2xl border border-white/5">
+            <div class="relative w-full sm:max-w-xs">
+                <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-xs"></i>
+                <input id="search-input" type="text" placeholder="Search playgrounds..." class="w-full bg-gray-900/60 border border-white/10 rounded-xl py-2 pl-9 pr-4 text-sm text-white focus:outline-none focus:border-neon-blue font-mono transition-colors">
+            </div>
+            <div class="flex flex-wrap gap-2 justify-center" id="category-filters">
+                <button onclick="filterCategory('all')" class="category-btn px-4 py-1.5 rounded-full text-xs font-mono bg-neon-blue/20 text-neon-blue border border-neon-blue/30 transition-all duration-300">ALL</button>
+                <button onclick="filterCategory('physics')" class="category-btn px-4 py-1.5 rounded-full text-xs font-mono bg-gray-900/50 text-gray-400 border border-white/5 hover:border-white/25 transition-all duration-300">PHYSICS</button>
+                <button onclick="filterCategory('3d')" class="category-btn px-4 py-1.5 rounded-full text-xs font-mono bg-gray-900/50 text-gray-400 border border-white/5 hover:border-white/25 transition-all duration-300">3D WEBGL</button>
+                <button onclick="filterCategory('generative')" class="category-btn px-4 py-1.5 rounded-full text-xs font-mono bg-gray-900/50 text-gray-400 border border-white/5 hover:border-white/25 transition-all duration-300">GENERATIVE</button>
+                <button onclick="filterCategory('canvas')" class="category-btn px-4 py-1.5 rounded-full text-xs font-mono bg-gray-900/50 text-gray-400 border border-white/5 hover:border-white/25 transition-all duration-300">CANVAS</button>
+            </div>
+        </div>
+
+        <!-- Tool Cards Grid -->
+        <main class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-12 flex-grow" id="tools-grid">
+            <!-- Dynamic Tool Cards will be injected here by JS -->
+        </main>
+
+        <!-- Footer -->
+        <footer class="mt-auto border-t border-white/5 pt-6 text-center text-xs text-gray-500 font-mono flex flex-col md:flex-row justify-between items-center gap-4">
+            <div>harsh labs v2.1.0 &copy; 2026</div>
+            <div class="flex gap-4">
+                <span class="text-neon-blue/60"><i class="fa-solid fa-bolt"></i> 60FPS Render Loop</span>
+                <span class="text-neon-purple/60"><i class="fa-solid fa-microchip"></i> WebGL 2 Enabled</span>
+            </div>
+        </footer>
+    </div>
+
+    <!-- Immersive Playgrounds View (Hidden by default) -->
+    <div id="playground-screen" class="fixed inset-0 z-50 hidden flex bg-black overflow-hidden select-none">
+        <!-- Top Navigation Floating Controls -->
+        <div class="absolute top-6 left-6 right-6 z-30 flex justify-between items-center pointer-events-none">
+            <!-- Back to Dashboard Floating Button -->
+            <button id="back-btn" class="pointer-events-auto flex items-center gap-2 bg-gray-900/90 hover:bg-neon-crimson/20 border border-white/10 hover:border-neon-crimson/50 text-gray-300 hover:text-neon-crimson px-4 py-2.5 rounded-xl text-xs md:text-sm font-mono tracking-wider shadow-lg transition-all duration-300">
+                <i class="fa-solid fa-arrow-left"></i> BACK TO DASHBOARD
+            </button>
+
+            <!-- Floating Controls Button -->
+            <button id="controls-trigger-btn" class="pointer-events-auto flex items-center gap-2 bg-gray-900/90 hover:bg-neon-blue/20 border border-white/10 hover:border-neon-blue/50 text-gray-300 hover:text-neon-blue px-4 py-2.5 rounded-xl text-xs md:text-sm font-mono tracking-wider shadow-lg transition-all duration-300">
+                <i class="fa-solid fa-sliders"></i> CONTROLS
+            </button>
+        </div>
+
+        <!-- Telemetry HUD Overlay (Active FPS, rendering stats) -->
+        <div class="absolute bottom-6 left-6 z-30 pointer-events-none font-mono text-[10px] text-gray-500 bg-gray-950/80 px-3 py-2 rounded-lg border border-white/5 space-y-0.5">
+            <div class="text-neon-blue flex items-center gap-1.5 font-bold">
+                <span class="w-1.5 h-1.5 bg-neon-blue rounded-full animate-pulse"></span> TELEMETRY ONLINE
+            </div>
+            <div>FPS: <span id="telemetry-fps" class="text-white">60</span></div>
+            <div>Engine: <span id="telemetry-engine" class="text-white">WebGL 2</span></div>
+        </div>
+
+        <!-- Interactive Canvas / View Container -->
+        <div id="canvas-container" class="w-full h-full absolute inset-0 z-10"></div>
+
+        <!-- Floating UI / Parameter Control Panel (Responsive Side-Drawer / Floating Card) -->
+        <div id="controls-panel" class="fixed bottom-6 left-6 right-6 md:fixed md:top-6 md:right-6 md:bottom-6 md:left-auto md:w-80 rounded-2xl z-40 flex flex-col glass-panel border border-white/10 shadow-2xl transition-all duration-500 transform translate-y-full md:translate-y-0 md:translate-x-full">
+            
+            <!-- Panel Header -->
+            <div class="p-5 border-b border-white/10 flex justify-between items-center">
+                <div>
+                    <h3 id="current-tool-title" class="text-lg font-bold text-white tracking-wide">Solar System</h3>
+                    <span id="current-tool-category" class="text-[10px] font-mono tracking-widest text-neon-blue uppercase bg-neon-blue/10 px-2 py-0.5 rounded border border-neon-blue/20">3D WEBGL</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <!-- Reset Button -->
+                    <button onclick="resetCurrentSimulation()" class="w-8 h-8 rounded-lg bg-gray-800 hover:bg-gray-700 text-gray-300 flex items-center justify-center border border-white/5 hover:border-white/10 transition-colors" title="Reset Simulation">
+                        <i class="fa-solid fa-rotate-right text-xs"></i>
+                    </button>
+                    <!-- Close Sheet Button -->
+                    <button id="panel-close-btn" class="w-8 h-8 rounded-lg bg-gray-800 hover:bg-neon-crimson/20 hover:text-neon-crimson text-gray-300 flex items-center justify-center border border-white/5 hover:border-neon-crimson/30 transition-all" title="Close Panel">
+                        <i class="fa-solid fa-xmark text-xs"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Panel Sliders & Toggles Content -->
+            <div class="flex-grow overflow-y-auto p-5 space-y-6" id="panel-parameters">
+                <!-- Parameters dynamically loaded based on the simulation -->
+            </div>
+
+            <!-- Panel Info / Details -->
+            <div class="p-5 border-t border-white/10 bg-black/20 text-xs text-gray-400 font-mono">
+                <div class="flex items-center gap-1.5 text-white/90 font-bold mb-1">
+                    <i class="fa-solid fa-circle-info text-[10px] text-neon-blue"></i> HOW IT WORKS
+                </div>
+                <p id="current-tool-info">A WebGL-based physical layout of solar orbits, using Kepler's equations of planetary motion in 3D Space.</p>
+            </div>
+        </div>
+
+        <!-- Global Particle Interactive Overlay Canvas -->
+        <canvas id="touch-canvas" class="absolute inset-0 pointer-events-none z-20"></canvas>
+
+        <!-- On-Screen Action Overlay (e.g. For canvas drawings, synth touch) -->
+        <div id="touch-overlay" class="absolute inset-0 pointer-events-none z-15 flex items-center justify-center">
+            <div id="tap-instruction" class="bg-black/60 border border-white/10 text-xs font-mono tracking-wider text-gray-300 px-4 py-2 rounded-lg backdrop-blur-md opacity-0 transition-opacity duration-500">
+                Tap anywhere to spawn objects
+            </div>
+        </div>
+    </div>
+
+    <!-- Core App Controller Script -->
+    <script src="main.js"></script>
+</body>
+</html>
